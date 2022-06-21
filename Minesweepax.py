@@ -50,4 +50,6 @@ class Minesweepax(object):
   def __remake_frame(self):
     if self.frame is not None:
       self.frame.destroy()
+    self.master.geometry('150x250')
     self.frame = tk.Frame(self.master)
+    self.frame.pack(fill=tk.BOTH)
