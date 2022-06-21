@@ -1,5 +1,8 @@
 import tkinter as tk
+from tkinter import messagebox
 from enum import Enum
+
+from Tile import Tile
 
 class Game(object):
   class Difficulty(Enum):
@@ -42,6 +45,7 @@ class Game(object):
     self.__resize_window()
 
     self.__widget_menu()
+    self.__widget_board()
 
   def __widget_menu(self):
     menu_frame = tk.Frame(self.frame)
@@ -60,6 +64,8 @@ class Game(object):
     )
     btn_exit.pack()
 
+    tk.Frame(menu_frame, height=15).pack()
+
     self.lbl_time = tk.Label(menu_frame, anchor=tk.W)
     self.lbl_time.pack(fill=tk.X)
 
@@ -72,6 +78,19 @@ class Game(object):
 
     self.lbl_flags = tk.Label(menu_frame, anchor=tk.W)
     self.lbl_flags.pack(fill=tk.X)
+
+  def __widget_board(self):
+    board_frame = tk.Frame(self.frame)
+    board_frame.pack(padx=5, pady=5, side=tk.LEFT)
+
+    self.board = [[0 for x in range(self.nb_cols)] for y in range(self.nb_rows)]
+
+    for y in range(self.nb_rows):
+      for x in range(self.nb_cols):
+        tile = Tile(x, y)
+        self.board[y][x] = tile
+        tile.mk_button(board_frame)
+        tile.button.grid(row=y, column=x, padx=0, pady=0, sticky='nsew')
 
   def __set_board_specs(self):
     if self.difficulty == self.Difficulty.EASY:
@@ -87,9 +106,9 @@ class Game(object):
 
   def __resize_window(self):
     if self.difficulty == self.Difficulty.EASY:
-      x, y = 275, 250
+      x, y = 300, 155
     elif self.difficulty == self.Difficulty.INTERMEDIATE:
-      x, y = 300, 275
+      x, y = 440, 300
     else:
-      x, y = 350, 275
+      x, y = 695, 300
     self.frame.master.geometry('{}x{}'.format(x, y))
