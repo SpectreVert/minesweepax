@@ -14,13 +14,15 @@ class Images(metaclass=Singleton):
       'mine': self.__open_image(path + 'mine.png'),
       'mine_clicked': self.__open_image(path + 'mine_clicked.png'),
       'mine_wrong': self.__open_image(path + 'mine_wrong.png'),
-      'numbers': [],
       'untouched': self.__open_image(path + 'untouched.png'),
-      'unsure': self.__open_image(path + 'unsure.png'),
+      'numbers': [],
     }
+
+    # We get a KeyError if we don't intitialise (again???) like this...
+    self.images['numbers̈́'] = []
+
     for nb in range(1, 9):
-      self.images['numbers̈́'] = []
-      #.append(self.__open_image(path + str(nb) + '.png'))
+      self.images['numbers'].append(self.__open_image(path + str(nb) + '.png'))
 
   def get(self, image_name, nb=None):
     if image_name != 'numbers':
