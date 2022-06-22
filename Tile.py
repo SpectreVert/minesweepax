@@ -20,7 +20,7 @@ class Tile(object):
 
     # internal affairs
     self.state = self.State.CLEAR
-    self.type   = self.Type.ND
+    self.type  = self.Type.ND
 
     self.is_opened = False
     self.mines_around = 0
@@ -44,8 +44,10 @@ class Tile(object):
     )
 
   def open(self, is_game_finished=False):
+    if self.is_opened:
+      return
+
     self.is_opened = True
-    self.button.unbind('<Button-2>')
 
     if self.type == self.Type.MINE:
       if is_game_finished:
@@ -65,8 +67,9 @@ class Tile(object):
     self.button.bind('<Button-1>', cb_left_click)
     self.button.bind('<Button-3>', cb_right_click)
 
-  def unbind(self):
-    self.button.unbind('<Button-1>')
+  def unbind(self, do_unbind_left=False):
+    if not do_unbind_left:
+       self.button.unbind('<Button-1>')
     self.button.unbind('<Button-3>')
 
   def update_state(self, new_state):

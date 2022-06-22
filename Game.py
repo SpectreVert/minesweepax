@@ -29,7 +29,7 @@ class Game(object):
     self.seconds_elapsed = 0
 
     self.flags_left      = 0
-    self.flags_correct   = 0
+    self.tiles_done      = 0
 
     # labels n shit
     self.lbl_flags = None
@@ -80,6 +80,7 @@ class Game(object):
 
     self.lbl_flags = tk.Label(menu_frame, anchor=tk.W)
     self.lbl_flags.pack(fill=tk.X)
+    self.__update_flags()
 
   def __widget_board(self):
     board_frame = tk.Frame(self.frame)
@@ -106,9 +107,14 @@ class Game(object):
     while mines_todo:
       x = randint(0, self.nb_cols - 1)
       y = randint(0, self.nb_rows - 1)
+      bad = False
       if x != the_x and y != the_y and self.board[y][x].type == Tile.Type.ND:
-        self.board[y][x].type = Tile.Type.MINE
-        mines_todo -= 1
+        adjacent_tiles = self.__get_adjacent_tiles(the_x, the_y)
+        if self.board[y][x] in adjacent_tiles:
+          bad = True
+        if not bad:
+          self.board[y][x].type = Tile.Type.MINE
+          mines_todo -= 1
 
     for y in range(self.nb_rows):
       for x in range(self.nb_cols):
@@ -125,11 +131,16 @@ class Game(object):
     if tile.state == Tile.State.FLAGGED:
       return
 
-    tile.open()
-
     if tile.type == Tile.Type.MINE:
+      tile.open()
       self.__end_on_mine()
       return
+
+    if not tile.is_opened:
+      self.tiles_done += 1
+
+    tile.open()
+    tile.unbind(do_unbind_left=True)
 
     adjacent_tiles = self.__get_adjacent_tiles(tile.x, tile.y)
     closed_tiles   = list(filter(lambda t: not t.is_opened, adjacent_tiles))
@@ -150,39 +161,51 @@ class Game(object):
   # End of game
 
   def __end_on_mine(self):
+    for row in self.board:
+      for tile in row:
+        tile.unbind()
+        if tile.is_opened:
+          pass
+        elif tile.type == Tile.Type.MINE and tile.state != Tile.State.FLAGGED:
+          tile.open(is_game_finished=True)
+        elif tile.type != Tile.Type.MINE and tile.state == Tile.State.FLAGGED:
+          tile.update_state(tile.State.BAD_FLAG)
     print('LOST YOU NOOB')
-    exit(1)
+
+  def __end_on_victory(self):
+    for row in self.board:
+      for tile in row:
+        tile.unbind()
+    print('YOU WON')
 
   # Event callbacks
 
   def __on_left_click(self, x, y, event=None):
     if self.board[y][x].state != Tile.State.CLEAR:
-      # TODO remove this for double click
       return
     if not self.is_mines_inited:
       self.__init_mines(x, y)
     self.__open_tile(x, y)
+    if self.tiles_done == self.nb_rows * self.nb_cols:
+      self.__end_on_victory()
 
   def __on_right_click(self, x, y, event=None):
     tile = self.board[y][x]
     if tile.state == Tile.State.CLEAR:
       if self.flags_left != 0:
+        if tile.type == Tile.Type.MINE:
+          self.tiles_done += 1
         tile.update_state(tile.State.FLAGGED)
         self.flags_left -= 1
-        if tile.type == tile.Type.MINE:
-          self.flags_correct += 1
-        if self.flags_correct == self.nb_mines:
-          print('KOWABUNGA YOU WON')
-          exit(1)
-        else:
-          # TODO update flag label
-          pass
+        self.__update_flags()
     else:
+      if tile.type == Tile.Type.MINE:
+        self.tiles_done -= 1
       tile.update_state(tile.State.CLEAR)
       self.flags_left += 1
-      if tile.type == tile.Type.MINE:
-        self.flags_correct -= 1
-        # TODO update flag label
+      self.__update_flags()
+    if self.tiles_done == self.nb_rows * self.nb_cols:
+      self.__end_on_victory()
 
   # (Re)Usable utilities
 
@@ -197,6 +220,11 @@ class Game(object):
       self.nb_rows    = 16
       self.nb_cols    = 30
       self.flags_left = self.nb_mines = 99
+
+  def __update_flags(self):
+    self.lbl_flags.configure(text='Remaining flags: {}'.format(
+      self.flags_left
+    ))
 
   def __resize_window(self):
     if self.difficulty == self.Difficulty.EASY:
@@ -213,7 +241,6 @@ class Game(object):
       (-1, -1), (0, -1), (1, -1), (-1, 0),
       (1, 0), (-1, 1), (0, 1), (1, 1)
     ]
-
     for t in to_check:
       tx, ty = x + t[0], y + t[1]
       if self.nb_rows > tx >= 0:
