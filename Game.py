@@ -1,4 +1,5 @@
 import tkinter as tk
+
 from tkinter import messagebox
 from enum import Enum
 from functools import partial
@@ -31,12 +32,14 @@ class Game(object):
     self.flags_left      = 0
     self.tiles_done      = 0
 
-    # labels n shit
-    self.lbl_flags = None
-    self.lbl_time  = None
+    # war of the butons; includes free-of-charge labels
+    self.btn_quit_game = None
+    self.lbl_flags     = None
+    self.lbl_time      = None
 
     # callbacks
     self.cb_on_end = None
+    self.cb_time_loop = None
 
   def start(self, difficulty, cb_on_end):
     self.is_game_running = True
@@ -49,6 +52,8 @@ class Game(object):
     self.__widget_menu()
     self.__widget_board()
 
+  # Widgets
+
   def __widget_menu(self):
     menu_frame = tk.Frame(self.frame)
     menu_frame.pack(
@@ -58,18 +63,25 @@ class Game(object):
       side=tk.LEFT
     )
 
-    btn_exit = tk.Button(
+    self.btn_quit_game = tk.Button(
       menu_frame,
-      command=self.cb_on_end,
+      command=self.__widget_ask_on_quit,
       text='Give Up',
       width=15
     )
-    btn_exit.pack()
+    self.btn_quit_game.pack()
 
-    tk.Frame(menu_frame, height=15).pack()
+    def _time_loop(the_frame):
+      if not self.is_game_running:
+        return
+      self.seconds_elapsed += 1
+      self.lbl_time.configure(
+        text='Seconds Elapsed: {}'.format(self.seconds_elapsed))
+      the_frame.after(1000, _time_loop, the_frame)
 
     self.lbl_time = tk.Label(menu_frame, anchor=tk.W)
     self.lbl_time.pack(fill=tk.X)
+    self.cb_time_loop = partial(_time_loop, menu_frame)
 
     lbl_mines = tk.Label(
       menu_frame,
@@ -81,6 +93,14 @@ class Game(object):
     self.lbl_flags = tk.Label(menu_frame, anchor=tk.W)
     self.lbl_flags.pack(fill=tk.X)
     self.__update_flags()
+
+    lbl_mspx = tk.Label(
+      menu_frame,
+      anchor=tk.S,
+      borderwidth=15,
+      text='Minesweepax'
+    )
+    lbl_mspx.pack(fill=tk.X, side=tk.BOTTOM)
 
   def __widget_board(self):
     board_frame = tk.Frame(self.frame)
@@ -97,6 +117,45 @@ class Game(object):
         self.board[y][x] = tile
         tile.mk_button(board_frame)
         tile.bind(cb_left_click, cb_right_click)
+
+    self.cb_time_loop()
+
+  def __widget_end_of_game(self, is_game_won=False):
+    def _spawn():
+      if is_game_won:
+        the_msg = 'You won! You play poker with that luck?'
+        self.btn_quit_game.configure(text='Back to glory and fame')
+      else:
+        the_msg = 'You lost... Try harder!'
+        self.btn_quit_game.configure(text='Back to mommy')
+
+      tk.messagebox.showinfo(
+        message=the_msg,
+        title='Game Finished'
+      )
+
+    self.frame.after(250, _spawn)
+
+  def __widget_ask_on_quit(self):
+    if not self.tiles_done:
+      self.cb_on_end()
+      return
+    elif self.is_game_running == False:
+      self.cb_on_end()
+      return
+
+    self.is_game_running = False
+
+    is_coward = tk.messagebox.askyesno(
+      message='Are you coward enough to quit?',
+      title='Quit Game'
+    )
+    if is_coward:
+      self.cb_on_end()
+      return
+
+    self.is_game_running = True
+    self.cb_time_loop()
 
   # Game operations
 
@@ -161,6 +220,7 @@ class Game(object):
   # End of game
 
   def __end_on_mine(self):
+    self.is_game_running = False
     for row in self.board:
       for tile in row:
         tile.unbind()
@@ -170,13 +230,14 @@ class Game(object):
           tile.open(is_game_finished=True)
         elif tile.type != Tile.Type.MINE and tile.state == Tile.State.FLAGGED:
           tile.update_state(tile.State.BAD_FLAG)
-    print('LOST YOU NOOB')
+    self.__widget_end_of_game()
 
   def __end_on_victory(self):
+    self.is_game_running = False
     for row in self.board:
       for tile in row:
         tile.unbind()
-    print('YOU WON')
+    self.__widget_end_of_game(is_game_won=True)
 
   # Event callbacks
 
@@ -222,7 +283,7 @@ class Game(object):
       self.flags_left = self.nb_mines = 99
 
   def __update_flags(self):
-    self.lbl_flags.configure(text='Remaining flags: {}'.format(
+    self.lbl_flags.configure(text='Remaining Flags: {}'.format(
       self.flags_left
     ))
 
@@ -243,7 +304,7 @@ class Game(object):
     ]
     for t in to_check:
       tx, ty = x + t[0], y + t[1]
-      if self.nb_rows > tx >= 0:
-        if self.nb_cols > ty >= 0:
+      if self.nb_cols > tx >= 0:
+        if self.nb_rows > ty >= 0:
           tiles.append(self.board[ty][tx])
     return tiles
