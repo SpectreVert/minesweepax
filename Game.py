@@ -186,7 +186,7 @@ class Game(object):
 
   def __open_tile(self, x, y):
     tile = self.board[y][x]
-    
+
     if tile.state == Tile.State.FLAGGED:
       return
 

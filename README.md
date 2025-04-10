@@ -16,6 +16,6 @@ Then simply run `python3 .`, `python .` or `python.exe .` in this repository to 
 
 ## Screenshots
 
-[!menu](./screenshots/menu.png)
-[!difficulties](./screenshots/difficulties.png)
-[!addict game lost](./screenshots/game_lost.png)
+![menu](./screenshots/menu.png)
+![difficulties](./screenshots/difficulties.png)
+![addict game lost](./screenshots/game_lost.png)
